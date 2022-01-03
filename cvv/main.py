@@ -132,6 +132,8 @@ def main():
                         help="get school grades", action='store_true')
     parser.add_argument("--download-all", "-d",
                         help="download ALL teacher files", action='store_true')
+    parser.add_argument("--save-folder", "-save",
+                        help="folder to download file ", type=str, default='files')
     parser.add_argument('--start-month', "-s",
                         help="get assignment from (month)", type=int)
     parser.add_argument('--months', "-m",
@@ -140,7 +142,6 @@ def main():
                         help="get upcoming assignment for tomorrow", action='store_true')
 
     args = parser.parse_args()
-
     if not any(vars(args).values()):
         parser.error('No arguments provided.')
     elif not (args.files or args.assignment or args.grades):

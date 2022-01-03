@@ -190,9 +190,10 @@ class CVV(object):
             if resp.status_code != 200:
                 raise self.cvv.GenericError
 
-            if not path.exists("files"):
-                makedirs("files")
-            with open("files/"+filename+'.'+findall("filename=(.+)", resp.headers['content-disposition'])[0].split('.')[-1], 'wb') as f:
+            save_folder = self.cvv.args.save_folder.rstrip('/')
+            if not path.exists(save_folder):
+                makedirs(save_folder)
+            with open(save_folder+"/"+filename+'.'+findall("filename=(.+)", resp.headers['content-disposition'])[0].split('.')[-1], 'wb') as f:
                 f.write(resp.content)
 
         def retrieve_files(self):
