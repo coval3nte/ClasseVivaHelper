@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from yaml import dump, load, Loader
 from asyncio import get_event_loop
 from pathlib import Path
-from cvv import CVV
+from .classeviva_api import CVV
 cred_file = str(Path.home()) + '/cvv-credentials.yml'
 try:
     creds = load(open(cred_file, 'r'), Loader)

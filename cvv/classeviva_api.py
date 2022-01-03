@@ -5,7 +5,7 @@ from requests import post, get
 from datetime import datetime, timedelta
 from time import time
 from typing import List, Dict
-from data_types import Assignment, File, Grade
+from .data_types import Assignment, File, Grade
 
 
 class CVV(object):
