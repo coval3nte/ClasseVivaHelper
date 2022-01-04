@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 from setuptools import setup
-import shutil, glob
+import shutil
+import glob
 setup(name='ClasseVivaHelper',
-      version='1.0',
+      version='1.1',
       description='ClasseViva Helper Toolkit',
       author='coval3nte',
       author_email='covalente@posteo.eu',
