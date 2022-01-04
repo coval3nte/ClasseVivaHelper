@@ -1,33 +1,38 @@
-from lxml import html
-from re import findall
+"""classeviva api"""
+
 from os import path, makedirs
-from requests import post, get
+from re import findall
 from datetime import datetime, timedelta
 from time import time
 from typing import List, Dict
+from requests import post, get
+from lxml import html
 from .data_types import Assignment, File, Grade
 
 
-class CVV(object):
+class CVV:
     class AuthError(Exception):
         def __init__(self, message):
             super().__init__(message)
 
     class GenericError(Exception):
         def __init__(self):
-            super().__init__("something went wrong while communicating with CVV API's")
+            super().__init__("something went wrong "
+                             "while communicating with CVV API's")
 
     class MissingArgs(Exception):
         def __init__(self, message):
             super().__init__(message)
 
     def __init__(self, args, mail, password):
+        self.endpoint = "https://web.spaggiari.eu"
         self.mail = mail
         self.password = password
         self.args = args
         self._headers = {
             "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0"
+            "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) "
+                          "Gecko/20100101 Firefox/47.0"
         }
         self._cookies = {}
         self._login()
@@ -47,7 +52,7 @@ class CVV(object):
             "target": ""
         }
 
-        login = post('https://web.spaggiari.eu/auth-p7/app/default/AuthApi4.php',
+        login = post(self.endpoint + '/auth-p7/app/default/AuthApi4.php',
                      params=params,
                      data=data,
                      headers=self._headers)
@@ -93,11 +98,12 @@ class CVV(object):
             self.retrieve_grades()
 
         def _do_grades(self):
-            grades = get('https://web.spaggiari.eu/cvv/app/default/genitori_voti.php',
+            grades = get(self.cvv.endpoint +
+                         '/cvv/app/default/genitori_voti.php',
                          cookies=self.cvv._cookies,
                          headers=self.cvv._headers)
             if grades.status_code != 200:
-                raise self.GenericError
+                raise self.cvv.GenericError
             return grades.text
 
         def retrieve_grades(self):
@@ -107,7 +113,11 @@ class CVV(object):
             for term in school_terms:
                 grades_dict = {}
                 trs = tree.xpath(
-                    f"//*[@id=\"{term}\"]//table[@sessione=\"{term}\"]//tr[contains(@sessione, \"{term}\") and contains(@class, \"riga_materia_componente\")]")
+                    f"//*[@id=\"{term}\"]//"
+                    f"table[@sessione=\"{term}\"]//"
+                    f"tr[contains(@sessione, \"{term}\") and "
+                    f"contains(@class, \"riga_materia_componente\")]"
+                )
                 for tr in trs:
                     subject = tr.xpath(
                         'td')[0].text_content().strip().capitalize()
@@ -152,10 +162,12 @@ class CVV(object):
             self.cvv = cvv
 
         def _do_files(self, params):
-            files = get('https://web.spaggiari.eu/fml/app/default/didattica_genitori_new.php',
+            files = get(self.cvv.endpoint +
+                        '/fml/app/default/didattica_genitori_new.php',
                         params=params,
                         cookies=self.cvv._cookies,
-                        headers=self.cvv._headers)
+                        headers=self.cvv._headers
+                        )
 
             if files.status_code != 200:
                 raise self.cvv.GenericError
@@ -183,7 +195,8 @@ class CVV(object):
                 'contenuto_id': contenuto_id,
                 'cksum': cksum
             }
-            resp = get('https://web.spaggiari.eu/fml/app/default/didattica_genitori.php',
+            resp = get(self.cvv.endpoint +
+                       '/fml/app/default/didattica_genitori.php',
                        params=params,
                        cookies=self.cvv._cookies,
                        headers=self.cvv._headers)
@@ -193,7 +206,11 @@ class CVV(object):
             save_folder = self.cvv.args.save_folder.rstrip('/')
             if not path.exists(save_folder):
                 makedirs(save_folder)
-            with open(save_folder+"/"+filename+'.'+findall("filename=(.+)", resp.headers['content-disposition'])[0].split('.')[-1], 'wb') as f:
+            with open(save_folder+"/"+filename+'.' +
+                      findall("filename=(.+)",
+                              resp.headers['content-disposition']
+                              )[0].split('.')[-1],
+                      'wb') as f:
                 f.write(resp.content)
 
         def retrieve_files(self):
@@ -220,7 +237,8 @@ class CVV(object):
     class Assignments(object):
         def __init__(self, cvv):
             self.cvv = cvv
-            if self.cvv.args.start_month or self.cvv.args.months or self.cvv.args.tomorrow:
+            if self.cvv.args.start_month or \
+                    self.cvv.args.months or self.cvv.args.tomorrow:
                 self._get_assignments()
             else:
                 raise self.cvv.MissingArgs(
@@ -239,7 +257,8 @@ class CVV(object):
                 "end": end_date
             }
 
-            assignments = post('https://web.spaggiari.eu/fml/app/default/agenda_studenti.php',
+            assignments = post(self.cvv.endpoint +
+                               '/fml/app/default/agenda_studenti.php',
                                params=params,
                                data=data,
                                cookies=self.cvv._cookies,
