@@ -100,7 +100,8 @@ def main():
     if not any(vars(args).values()):
         parser.error('No arguments provided.')
     elif not (args.files or args.assignment or args.grades):
-        parser.error("Choose at least one action between assignment and file!")
+        parser.error("Choose at least one action between files, assignments"
+                     ", grades!")
 
     cvv = CVV(args, mail, password, session)
 
@@ -130,7 +131,7 @@ def main():
         except KeyboardInterrupt:
             print('bye...')
             sexit()
-        except ValueError:
+        except (ValueError, IndexError):
             pass
 
 

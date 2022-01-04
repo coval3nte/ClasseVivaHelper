@@ -8,6 +8,7 @@ CRED_FILE = str(Path.home()) + '/cvv-credentials.yml'
 
 class Creds:
     """creds helper class"""
+
     def __init__(self):
         self.creds = {}
         if path.exists(CRED_FILE):

@@ -47,6 +47,7 @@ class CVV:
             self._login()
 
         self.assignments = {}
+        self.grades = {}
 
     def _test_session(self):
         return get(self.endpoint +
@@ -122,8 +123,8 @@ class CVV:
 
         def __init__(self, cvv):
             self.cvv = cvv
-            self.grades = {}
-            self.retrieve_grades()
+            if not self.cvv.grades:
+                self.retrieve_grades()
 
         def _do_grades(self):
             grades = get(self.cvv.endpoint +
@@ -160,27 +161,27 @@ class CVV:
                                 'div/p')[0].text_content(),
                             voto.xpath('span')[0].text_content()))
                 if len(grades_dict):
-                    self.grades[term] = grades_dict
+                    self.cvv.grades[term] = grades_dict
 
-            return self.grades
+            return self.cvv.grades
 
         def get_grades(self):
             """get grades"""
-            return self.grades
+            return self.cvv.grades
 
         def get_terms_keys(self):
             """get school terms keys"""
-            return list(self.grades.keys())
+            return list(self.cvv.grades.keys())
 
         def get_subject_keys(self, index):
             """get subject keys"""
-            return list(self.grades[index].keys())
+            return list(self.cvv.grades[index].keys())
 
         def get_average(self, index, subject):
             """get average"""
             bad_words = ['+', '-', '½']
             avg = 0.0
-            for grade in self.grades[index][subject]:
+            for grade in self.cvv.grades[index][subject]:
                 if bad_words[0] in grade.grade:
                     avg += 0.25
                 if bad_words[0] in grade.grade:
@@ -188,7 +189,7 @@ class CVV:
                 if bad_words[2] in grade.grade:
                     avg += 0.5
                 avg += int(grade.grade.strip().rstrip(''.join(bad_words)))
-            return avg / len(self.grades[index][subject])
+            return avg / len(self.cvv.grades[index][subject])
 
     class Files:
         """files downloader class"""
@@ -276,12 +277,13 @@ class CVV:
 
         def __init__(self, cvv):
             self.cvv = cvv
-            if self.cvv.args.start_month or \
-                    self.cvv.args.months or self.cvv.args.tomorrow:
-                self._get_assignments()
-            else:
-                raise self.cvv.MissingArgs(
-                    "specify at least one of start-month or months")
+            if not self.cvv.assignments:
+                if self.cvv.args.start_month or \
+                        self.cvv.args.months or self.cvv.args.tomorrow:
+                    self._get_assignments()
+                else:
+                    raise self.cvv.MissingArgs(
+                        "specify at least one of start-month or months")
 
         def _assignment_request(self, start_date, end_date):
             params = {
