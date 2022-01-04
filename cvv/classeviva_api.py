@@ -4,37 +4,41 @@ from os import path, makedirs
 from re import findall
 from datetime import datetime, timedelta
 from time import time
-from typing import List, Dict
+from typing import Dict
 from requests import post, get
 from lxml import html
 from .data_types import Assignment, File, Grade
 
 
 class CVV:
+    """interact classeviva api"""
     class AuthError(Exception):
+        """auth exception"""
         def __init__(self, message):
-            super().__init__(message)
+            super().__init__(self, message)
 
     class GenericError(Exception):
+        """generic exception"""
         def __init__(self):
-            super().__init__("something went wrong "
+            super().__init__(self, "something went wrong "
                              "while communicating with CVV API's")
 
     class MissingArgs(Exception):
+        """missing args exception"""
         def __init__(self, message):
-            super().__init__(message)
+            super().__init__(self, message)
 
     def __init__(self, args, mail, password):
         self.endpoint = "https://web.spaggiari.eu"
         self.mail = mail
         self.password = password
         self.args = args
-        self._headers = {
+        self.headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) "
                           "Gecko/20100101 Firefox/47.0"
         }
-        self._cookies = {}
+        self.cookies = {}
         self._login()
 
         self.assignments = {}
@@ -55,11 +59,11 @@ class CVV:
         login = post(self.endpoint + '/auth-p7/app/default/AuthApi4.php',
                      params=params,
                      data=data,
-                     headers=self._headers)
+                     headers=self.headers)
 
         if login.status_code == 200 and "data" in login.json():
             if login.json()["data"]["auth"]["verified"]:
-                self._cookies["PHPSESSID"] = login.cookies.get_dict()[
+                self.cookies["PHPSESSID"] = login.cookies.get_dict()[
                     "PHPSESSID"]
             else:
                 raise self.AuthError(
@@ -68,30 +72,39 @@ class CVV:
             raise self.AuthError(', '.join(login.json()["error"]))
 
     def get_assignment(self, index):
+        """get assignment"""
         return self.Assignments(self).get_assignment(index)
 
     def get_assignments_keys(self):
+        """get assignment keys"""
         return self.Assignments(self).get_keys()
 
     def get_files(self):
+        """get files"""
         return list(reversed(self.Files(self).retrieve_files()))
 
     def get_grades(self):
+        """get grades"""
         return self.Grades(self).get_grades()
 
     def get_terms_keys(self):
+        """get terms keys"""
         return self.Grades(self).get_terms_keys()
 
     def get_subject_keys(self, index):
+        """get subject keys"""
         return self.Grades(self).get_subject_keys(index)
 
     def get_average(self, index, subject):
+        """get average"""
         return self.Grades(self).get_average(index, subject)
 
     def download_file(self, filename, contenuto_id, cksum):
+        """download file"""
         return self.Files(self).download_file(filename, contenuto_id, cksum)
 
-    class Grades(object):
+    class Grades:
+        """grades parsing class"""
         def __init__(self, cvv):
             self.cvv = cvv
             self.grades = {}
@@ -100,13 +113,14 @@ class CVV:
         def _do_grades(self):
             grades = get(self.cvv.endpoint +
                          '/cvv/app/default/genitori_voti.php',
-                         cookies=self.cvv._cookies,
-                         headers=self.cvv._headers)
+                         cookies=self.cvv.cookies,
+                         headers=self.cvv.headers)
             if grades.status_code != 200:
                 raise self.cvv.GenericError
             return grades.text
 
         def retrieve_grades(self):
+            """parse grades"""
             tree = html.fromstring(self._do_grades())
             school_terms = tree.xpath('//*[@class="outer"]/@id')
 
@@ -118,12 +132,12 @@ class CVV:
                     f"tr[contains(@sessione, \"{term}\") and "
                     f"contains(@class, \"riga_materia_componente\")]"
                 )
-                for tr in trs:
-                    subject = tr.xpath(
+                for xpath_tr in trs:
+                    subject = xpath_tr.xpath(
                         'td')[0].text_content().strip().capitalize()
                     grades_dict[subject] = []
 
-                    voti = tr.xpath(
+                    voti = xpath_tr.xpath(
                         'td[@class="registro cella_voto :sfondocella:"]')
                     for voto in voti:
                         grades_dict[subject].append(Grade(
@@ -136,15 +150,19 @@ class CVV:
             return self.grades
 
         def get_grades(self):
+            """get grades"""
             return self.grades
 
         def get_terms_keys(self):
+            """get school terms keys"""
             return list(self.grades.keys())
 
         def get_subject_keys(self, index):
+            """get subject keys"""
             return list(self.grades[index].keys())
 
         def get_average(self, index, subject):
+            """get average"""
             bad_words = ['+', '-', '½']
             avg = 0.0
             for grade in self.grades[index][subject]:
@@ -157,7 +175,8 @@ class CVV:
                 avg += int(grade.grade.strip().rstrip(''.join(bad_words)))
             return avg / len(self.grades[index][subject])
 
-    class Files(object):
+    class Files:
+        """files downloader class"""
         def __init__(self, cvv):
             self.cvv = cvv
 
@@ -165,8 +184,8 @@ class CVV:
             files = get(self.cvv.endpoint +
                         '/fml/app/default/didattica_genitori_new.php',
                         params=params,
-                        cookies=self.cvv._cookies,
-                        headers=self.cvv._headers
+                        cookies=self.cvv.cookies,
+                        headers=self.cvv.headers
                         )
 
             if files.status_code != 200:
@@ -190,6 +209,7 @@ class CVV:
             return files_pages
 
         def download_file(self, filename, contenuto_id, cksum):
+            """download file"""
             params = {
                 'a': 'downloadContenuto',
                 'contenuto_id': contenuto_id,
@@ -198,8 +218,8 @@ class CVV:
             resp = get(self.cvv.endpoint +
                        '/fml/app/default/didattica_genitori.php',
                        params=params,
-                       cookies=self.cvv._cookies,
-                       headers=self.cvv._headers)
+                       cookies=self.cvv.cookies,
+                       headers=self.cvv.headers)
             if resp.status_code != 200:
                 raise self.cvv.GenericError
 
@@ -210,10 +230,11 @@ class CVV:
                       findall("filename=(.+)",
                               resp.headers['content-disposition']
                               )[0].split('.')[-1],
-                      'wb') as f:
-                f.write(resp.content)
+                      'wb') as file:
+                file.write(resp.content)
 
         def retrieve_files(self):
+            """retrieve files"""
             files_pages = self._do_pages()
             files_list = []
 
@@ -221,11 +242,11 @@ class CVV:
                 tree = html.fromstring(files)
                 trs = tree.xpath('//*[@id="data_table"]/*[@contenuto_id]')
 
-                for tr in trs:
-                    tds = tr.xpath('td')
+                for xpath_tr in trs:
+                    tds = xpath_tr.xpath('td')
                     files_list.append(File(
-                        tr.xpath('@contenuto_id')[0],
-                        tr.xpath('*/div/@cksum')[0],
+                        xpath_tr.xpath('@contenuto_id')[0],
+                        xpath_tr.xpath('*/div/@cksum')[0],
                         tds[1].text_content().strip(),
                         path.splitext(tds[3].text_content(
                         ).strip().split('\n')[0].rstrip())[0],
@@ -234,7 +255,8 @@ class CVV:
 
             return files_list
 
-    class Assignments(object):
+    class Assignments:
+        """assignment parsing class"""
         def __init__(self, cvv):
             self.cvv = cvv
             if self.cvv.args.start_month or \
@@ -261,8 +283,8 @@ class CVV:
                                '/fml/app/default/agenda_studenti.php',
                                params=params,
                                data=data,
-                               cookies=self.cvv._cookies,
-                               headers=self.cvv._headers)
+                               cookies=self.cvv.cookies,
+                               headers=self.cvv.headers)
 
             if assignments.status_code == 200:
                 self.cvv.assignments = self._parse_assignments(
@@ -287,7 +309,8 @@ class CVV:
 
             self._assignment_request(start_date, end_date)
 
-        def _parse_assignments(self, assignments) -> Dict[str, List[str]]:
+        @classmethod
+        def _parse_assignments(cls, assignments):
             parsed_assignments: Dict[str, Assignment] = {}
             for item in assignments:
                 if item["autore_desc"] not in parsed_assignments:
@@ -300,7 +323,9 @@ class CVV:
             return parsed_assignments
 
         def get_assignment(self, index):
+            """get assignment"""
             return self.cvv.assignments[index]
 
         def get_keys(self):
+            """get subjects key"""
             return list(self.cvv.assignments.keys())

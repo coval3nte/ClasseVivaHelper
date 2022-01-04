@@ -2,12 +2,16 @@
 from argparse import ArgumentParser
 from asyncio import get_event_loop
 from pathlib import Path
+from sys import exit as sexit
 from colorama import Fore
 from yaml import dump, load, Loader
 from .classeviva_api import CVV
+
 CRED_FILE = str(Path.home()) + '/cvv-credentials.yml'
+
 try:
-    creds = load(open(CRED_FILE, 'r', encoding='utf-8'), Loader)
+    with open(CRED_FILE, 'r', encoding='utf-8') as f:
+        creds = load(f, Loader)
 except FileNotFoundError:
     creds = {'mail': input('email: '), 'password': input('password: ')}
     with open(CRED_FILE, 'w', encoding='utf-8') as file:
@@ -22,7 +26,7 @@ def display_indexes(keys):
     """arrays indexes"""
     output = []
     for idx in enumerate(keys):
-        output.append(f"{idx}: {keys[idx]}")
+        output.append(f"{idx[0]}: {idx[1]}")
     return output
 
 
@@ -54,8 +58,8 @@ def get_files(args, cvv, files, loop):
 
     for input_file in input_files:
         print(
-            f"{Fore.RED}downloading{Fore.RESET} "
-            f"{files[int(input_file)].filename}..."
+            f"{Fore.RED}downloading{Fore.RESET} → "
+            f"{args.save_folder}/{files[int(input_file)].filename}..."
         )
         loop.run_in_executor(None, cvv.download_file,
                              files[int(input_file)].filename,
@@ -63,7 +67,7 @@ def get_files(args, cvv, files, loop):
                              files[int(input_file)].cksum)
 
     if args.download_all:
-        exit()
+        sexit()
 
 
 def get_assignment(cvv, keys):
@@ -76,7 +80,7 @@ def get_assignment(cvv, keys):
             f"{Fore.RED}{subject_name}{Fore.RESET}"
         )
         print(
-            *(f"{Fore.RESET}{assignment.date}: "
+            *(f"{Fore.RESET}{assignment.date.split(' ')[0]}: "
               f"{Fore.GREEN}{assignment.desc}{Fore.RESET}"
               for assignment in assignments),
             sep='\n'
@@ -124,8 +128,8 @@ def main():
         files = cvv.get_files()
         for idx in enumerate(files):
             print(
-                f"{idx}: {files[idx].date} {files[idx].teacher} "
-                f"{Fore.GREEN}{files[idx].filename}{Fore.RESET}"
+                f"{idx[0]}: {idx[1].date} {idx[1].teacher} "
+                f"{Fore.GREEN}{idx[1].filename}{Fore.RESET}"
             )
 
     while True:
@@ -138,7 +142,7 @@ def main():
                 get_files(args, cvv, files, loop)
         except KeyboardInterrupt:
             print('bye...')
-            exit()
+            sexit()
         except ValueError:
             pass
 
