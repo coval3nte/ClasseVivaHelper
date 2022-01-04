@@ -8,27 +8,31 @@ from typing import Dict
 from requests import post, get
 from lxml import html
 from .data_types import Assignment, File, Grade
+from .creds import Creds
 
 
 class CVV:
     """interact classeviva api"""
     class AuthError(Exception):
         """auth exception"""
+
         def __init__(self, message):
             super().__init__(self, message)
 
     class GenericError(Exception):
         """generic exception"""
+
         def __init__(self):
             super().__init__(self, "something went wrong "
                              "while communicating with CVV API's")
 
     class MissingArgs(Exception):
         """missing args exception"""
+
         def __init__(self, message):
             super().__init__(self, message)
 
-    def __init__(self, args, mail, password):
+    def __init__(self, args, mail, password, session):
         self.endpoint = "https://web.spaggiari.eu"
         self.mail = mail
         self.password = password
@@ -38,12 +42,21 @@ class CVV:
             "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) "
                           "Gecko/20100101 Firefox/47.0"
         }
-        self.cookies = {}
-        self._login()
+        self.cookies = {"PHPSESSID": session}
+        if (not session) or (not self._test_session()):
+            self._login()
 
         self.assignments = {}
 
-    def _login(self) -> None:
+    def _test_session(self):
+        return get(self.endpoint +
+                   '/home/app/default/menu_webinfoschool_studenti.php',
+                   cookies=self.cookies,
+                   headers=self.headers,
+                   allow_redirects=False
+                   ).status_code == 200
+
+    def _login(self):
         params = {
             "a": "aLoginPwd"
         }
@@ -65,6 +78,7 @@ class CVV:
             if login.json()["data"]["auth"]["verified"]:
                 self.cookies["PHPSESSID"] = login.cookies.get_dict()[
                     "PHPSESSID"]
+                Creds().write_session(self.cookies["PHPSESSID"])
             else:
                 raise self.AuthError(
                     ', '.join(login.json()["data"]["auth"]["errors"]))
@@ -105,6 +119,7 @@ class CVV:
 
     class Grades:
         """grades parsing class"""
+
         def __init__(self, cvv):
             self.cvv = cvv
             self.grades = {}
@@ -177,6 +192,7 @@ class CVV:
 
     class Files:
         """files downloader class"""
+
         def __init__(self, cvv):
             self.cvv = cvv
 
@@ -257,6 +273,7 @@ class CVV:
 
     class Assignments:
         """assignment parsing class"""
+
         def __init__(self, cvv):
             self.cvv = cvv
             if self.cvv.args.start_month or \
@@ -295,7 +312,9 @@ class CVV:
             start_date = int(time())
             if self.cvv.args.start_month:
                 start_date = int(datetime(
-                    datetime.now().year, self.cvv.args.start_month, 1, 0, 0
+                    datetime.now().year if datetime.now().month > 8
+                    else datetime.now().year-1,
+                    self.cvv.args.start_month, 1, 0, 0
                 ).timestamp())
 
             end_date = int(time())

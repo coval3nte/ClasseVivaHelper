@@ -1,25 +1,12 @@
 """classeviva main"""
 from argparse import ArgumentParser
 from asyncio import get_event_loop
-from pathlib import Path
 from sys import exit as sexit
 from colorama import Fore
-from yaml import dump, load, Loader
 from .classeviva_api import CVV
+from .creds import Creds
 
-CRED_FILE = str(Path.home()) + '/cvv-credentials.yml'
-
-try:
-    with open(CRED_FILE, 'r', encoding='utf-8') as f:
-        creds = load(f, Loader)
-except FileNotFoundError:
-    creds = {'mail': input('email: '), 'password': input('password: ')}
-    with open(CRED_FILE, 'w', encoding='utf-8') as file:
-        dump(creds, file)
-    print(f'{Fore.GREEN}credentials{Fore.RESET} saved at: '
-          f'{Fore.MAGENTA}{CRED_FILE}{Fore.RESET}')
-
-(mail, password) = (val[1] for val in creds.items())
+(mail, password, session) = (val[1] for val in Creds().get_creds())
 
 
 def display_indexes(keys):
@@ -115,7 +102,7 @@ def main():
     elif not (args.files or args.assignment or args.grades):
         parser.error("Choose at least one action between assignment and file!")
 
-    cvv = CVV(args, mail, password)
+    cvv = CVV(args, mail, password, session)
 
     if args.assignment:
         keys = cvv.get_assignments_keys()
