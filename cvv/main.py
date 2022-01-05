@@ -2,11 +2,19 @@
 from argparse import ArgumentParser
 from asyncio import get_event_loop
 from sys import exit as sexit
+from os import get_terminal_size
 from colorama import Fore
 from .classeviva_api import CVV
 from .creds import Creds
 
+SUFFICIENCY = 6
+MIN_GRADE = 2
 (mail, password, session) = (val[1] for val in Creds().get_creds())
+
+
+def divisor():
+    """terminal divisor"""
+    return '-'*get_terminal_size()[0] + '\n'
 
 
 def display_indexes(keys):
@@ -17,16 +25,35 @@ def display_indexes(keys):
     return output
 
 
+def text_trend(trend):
+    """text trend"""
+    if not isinstance(trend, bool):
+        return ''
+    if trend:
+        return ' - 📈'
+
+    return ' - 📉'
+
+
 def get_grades(cvv, keys):
     """parse grades API"""
     terms = input("Term (index): ").rstrip().split(",")
     for term in terms:
+        not_sufficient, min_grade = [], []
         subjects = cvv.get_grades()[keys[int(term)]]
         for subject in subjects:
             avg = cvv.get_average(keys[int(term)], subject)
+            trend = text_trend(cvv.get_trend(keys[int(term)], subject))
+
+            if avg < SUFFICIENCY:
+                not_sufficient.append(subject)
+            if len(subjects[subject]) < MIN_GRADE:
+                min_grade.append(subject)
+
             print(
-                f"{Fore.RED}{subject} - {Fore.GREEN if avg > 6.0 else ''}"
-                f"{avg}{Fore.RESET}"
+                f"{Fore.RED}{subject}"
+                f"{Fore.GREEN + ' - ' if avg > 6.0 else ' - '}"
+                f"{avg}{trend}{Fore.RESET}"
             )
             print(
                 *(f"{Fore.RESET}{grade.date}: "
@@ -34,6 +61,17 @@ def get_grades(cvv, keys):
                   for grade in subjects[subject]),
                 sep='\n'
             )
+
+        if not_sufficient:
+            print(divisor() +
+                  f"Gaps in:\n- {Fore.RED}" +
+                  f'\n{Fore.RESET}-{Fore.RED} '.join(not_sufficient) +
+                  Fore.RESET)
+        if min_grade:
+            print(divisor() +
+                  f"Few grades in:\n- {Fore.RED}" +
+                  f'\n{Fore.RESET}-{Fore.RED} '.join(min_grade) +
+                  Fore.RESET)
 
 
 def get_files(args, cvv, files, loop):
@@ -103,7 +141,7 @@ def main():
         parser.error("Choose at least one action between files, assignments"
                      ", grades!")
 
-    cvv = CVV(args, mail, password, session)
+    cvv = CVV(args=args, mail=mail, password=password, session=session)
 
     if args.assignment:
         keys = cvv.get_assignments_keys()

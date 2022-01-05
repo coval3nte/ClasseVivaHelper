@@ -5,6 +5,8 @@ from re import findall
 from datetime import datetime, timedelta
 from time import time
 from typing import Dict
+from warnings import warn
+import numpy as np
 from requests import post, get
 from lxml import html
 from .data_types import Assignment, File, Grade
@@ -32,18 +34,22 @@ class CVV:
         def __init__(self, message):
             super().__init__(self, message)
 
-    def __init__(self, args, mail, password, session):
+    def __getattr__(self, name):
+        """avoid pylint E1101"""
+        warn(f'No member "{name}" contained in settings config.')
+        return ''
+
+    def __init__(self, **kwargs):
+        # args, mail, password, session
+        self.__dict__.update(kwargs)
         self.endpoint = "https://web.spaggiari.eu"
-        self.mail = mail
-        self.password = password
-        self.args = args
         self.headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) "
                           "Gecko/20100101 Firefox/47.0"
         }
-        self.cookies = {"PHPSESSID": session}
-        if (not session) or (not self._test_session()):
+        self.cookies = {"PHPSESSID": self.session}
+        if (not self.session) or (not self._test_session()):
             self._login()
 
         self.assignments = {}
@@ -75,16 +81,17 @@ class CVV:
                      data=data,
                      headers=self.headers)
 
-        if login.status_code == 200 and "data" in login.json():
-            if login.json()["data"]["auth"]["verified"]:
-                self.cookies["PHPSESSID"] = login.cookies.get_dict()[
-                    "PHPSESSID"]
-                Creds().write_session(self.cookies["PHPSESSID"])
-            else:
-                raise self.AuthError(
-                    ', '.join(login.json()["data"]["auth"]["errors"]))
+        if login.status_code == 200:
+            if "data" in login.json():
+                if login.json()["data"]["auth"]["verified"]:
+                    self.cookies["PHPSESSID"] = login.cookies.get_dict()[
+                        "PHPSESSID"]
+                    Creds().write_session(self.cookies["PHPSESSID"])
+                else:
+                    raise self.AuthError(
+                        ', '.join(login.json()["data"]["auth"]["errors"]))
         else:
-            raise self.AuthError(', '.join(login.json()["error"]))
+            raise self.AuthError(login.text)
 
     def get_assignment(self, index):
         """get assignment"""
@@ -114,6 +121,10 @@ class CVV:
         """get average"""
         return self.Grades(self).get_average(index, subject)
 
+    def get_trend(self, index, subject):
+        """get trend"""
+        return self.Grades(self).get_trend(index, subject)
+
     def download_file(self, filename, contenuto_id, cksum):
         """download file"""
         return self.Files(self).download_file(filename, contenuto_id, cksum)
@@ -134,6 +145,24 @@ class CVV:
             if grades.status_code != 200:
                 raise self.cvv.GenericError
             return grades.text
+
+        @classmethod
+        def _sanitize_grade(cls, grade):
+            bad_words = ['+', '-', '½']
+            grade_new = int(grade.strip().rstrip(''.join(bad_words)))
+            if bad_words[0] in grade:
+                grade_new += 0.25
+            if bad_words[0] in grade:
+                grade_new -= 0.25
+            if bad_words[2] in grade:
+                grade_new += 0.5
+            return grade_new
+
+        @classmethod
+        def _trend(cls, grades_list):
+            coeffs = np.polyfit(range(1, len(grades_list)+1), grades_list, 1)
+            slope = coeffs[-2]
+            return float(slope)
 
         def retrieve_grades(self):
             """parse grades"""
@@ -156,10 +185,16 @@ class CVV:
                     voti = xpath_tr.xpath(
                         'td[@class="registro cella_voto :sfondocella:"]')
                     for voto in voti:
+                        grade_date = voto.xpath('span')[0].text_content()
+                        if int(grade_date.split('/')[1]) > 8:
+                            grade_year = datetime.now().year-1
+                        else:
+                            grade_year = datetime.now().year
+
                         grades_dict[subject].append(Grade(
                             voto.xpath(
                                 'div/p')[0].text_content(),
-                            voto.xpath('span')[0].text_content()))
+                            f'{grade_date}/{grade_year}'))
                 if len(grades_dict):
                     self.cvv.grades[term] = grades_dict
 
@@ -179,17 +214,22 @@ class CVV:
 
         def get_average(self, index, subject):
             """get average"""
-            bad_words = ['+', '-', '½']
             avg = 0.0
             for grade in self.cvv.grades[index][subject]:
-                if bad_words[0] in grade.grade:
-                    avg += 0.25
-                if bad_words[0] in grade.grade:
-                    avg -= 0.25
-                if bad_words[2] in grade.grade:
-                    avg += 0.5
-                avg += int(grade.grade.strip().rstrip(''.join(bad_words)))
+                avg += int(self._sanitize_grade(grade.grade))
             return avg / len(self.cvv.grades[index][subject])
+
+        def get_trend(self, index, subject):
+            """get trend"""
+            grades = [self._sanitize_grade(x.grade)
+                      for x in self.cvv.grades[index][subject]]
+            if len(grades) <= 1 or len(set(grades)) == 1:
+                return None
+            trend = self._trend(
+                grades
+            )
+
+            return trend > 0 < trend
 
     class Files:
         """files downloader class"""
