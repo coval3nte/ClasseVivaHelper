@@ -39,10 +39,14 @@ def get_grades(cvv, keys):
     """parse grades API"""
     terms = input("Term (index): ").rstrip().split(",")
     for term in terms:
+        general_trend = cvv.get_average(keys[int(term)])
         not_sufficient, min_grade = [], []
         subjects = cvv.get_grades()[keys[int(term)]]
+        print(f"{Fore.MAGENTA}General Trend - {general_trend}"
+              f"{text_trend(general_trend > SUFFICIENCY)}{Fore.RESET}"
+              )
         for subject in subjects:
-            avg = cvv.get_average(keys[int(term)], subject)
+            avg = cvv.get_subject_average(keys[int(term)], subject)
             trend = text_trend(cvv.get_trend(keys[int(term)], subject))
 
             if avg < SUFFICIENCY:

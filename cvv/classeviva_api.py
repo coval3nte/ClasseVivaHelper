@@ -117,9 +117,13 @@ class CVV:
         """get subject keys"""
         return self.Grades(self).get_subject_keys(index)
 
-    def get_average(self, index, subject):
+    def get_average(self, index):
         """get average"""
-        return self.Grades(self).get_average(index, subject)
+        return self.Grades(self).get_average(index)
+
+    def get_subject_average(self, index, subject):
+        """get subject average"""
+        return self.Grades(self).get_subject_average(index, subject)
 
     def get_trend(self, index, subject):
         """get trend"""
@@ -152,7 +156,7 @@ class CVV:
             grade_new = int(grade.strip().rstrip(''.join(bad_words)))
             if bad_words[0] in grade:
                 grade_new += 0.25
-            if bad_words[0] in grade:
+            if bad_words[1] in grade:
                 grade_new -= 0.25
             if bad_words[2] in grade:
                 grade_new += 0.5
@@ -206,28 +210,37 @@ class CVV:
 
         def get_terms_keys(self):
             """get school terms keys"""
-            return list(self.cvv.grades.keys())
+            return list(self.get_grades().keys())
 
         def get_subject_keys(self, index):
             """get subject keys"""
-            return list(self.cvv.grades[index].keys())
+            return list(self.get_grades()[index].keys())
 
-        def get_average(self, index, subject):
+        def get_subject_average(self, index, subject):
+            """get subject average"""
+            avg = 0.0
+            if not self.get_grades()[index][subject]:
+                return avg
+            for grade in self.get_grades()[index][subject]:
+                avg += self._sanitize_grade(grade.grade)
+            return avg / len(self.get_grades()[index][subject])
+
+        def get_average(self, index):
             """get average"""
             avg = 0.0
-            for grade in self.cvv.grades[index][subject]:
-                avg += int(self._sanitize_grade(grade.grade))
-            return avg / len(self.cvv.grades[index][subject])
+            if not self.get_grades()[index]:
+                return avg
+            for subject in self.get_grades()[index]:
+                avg += self.get_subject_average(index, subject)
+            return avg/len(self.get_grades()[index])
 
         def get_trend(self, index, subject):
             """get trend"""
             grades = [self._sanitize_grade(x.grade)
-                      for x in self.cvv.grades[index][subject]]
+                      for x in self.get_grades()[index][subject]]
             if len(grades) <= 1 or len(set(grades)) == 1:
                 return None
-            trend = self._trend(
-                grades
-            )
+            trend = self._trend(grades)
 
             return trend > 0 < trend
 
