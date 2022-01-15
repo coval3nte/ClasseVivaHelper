@@ -24,3 +24,12 @@ class Grade:
     """grade datatype"""
     grade: str
     date: str
+
+
+@dataclass
+class Lesson:
+    """lesson datatype"""
+    teacher_name: str
+    teacher_subject: str
+    hour: str
+    topic: str

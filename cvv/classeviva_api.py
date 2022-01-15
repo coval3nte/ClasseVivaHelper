@@ -9,7 +9,7 @@ from warnings import warn
 import numpy as np
 from requests import post, get
 from lxml import html
-from .data_types import Assignment, File, Grade
+from .data_types import Assignment, File, Grade, Lesson
 from .creds import Creds
 
 
@@ -93,6 +93,10 @@ class CVV:
         else:
             raise self.AuthError(login.text)
 
+    def get_lessons(self, start_date=''):
+        """get today"""
+        return self.Lesson(self, start_date).get_lessons()
+
     def get_assignment(self, index):
         """get assignment"""
         return self.Assignments(self).get_assignment(index)
@@ -132,6 +136,57 @@ class CVV:
     def download_file(self, filename, contenuto_id, cksum):
         """download file"""
         return self.Files(self).download_file(filename, contenuto_id, cksum)
+
+    class Lesson:
+        """lesson parsing class"""
+
+        def __init__(self, cvv, start_date=''):
+            self.cvv = cvv
+            self.start_date = start_date
+
+        def _do_lessons(self):
+            params = {
+                'data_start': self.start_date,
+            }
+            today = get(self.cvv.endpoint +
+                        "/fml/app/default/regclasse.php",
+                        cookies=self.cvv.cookies,
+                        headers=self.cvv.headers,
+                        params=params)
+            if today.status_code != 200:
+                raise self.cvv.GenericError
+            return today.text
+
+        def retrieve_lessons(self):
+            tree = html.fromstring(self._do_lessons())
+            trs = tree.xpath('(//table[@id="data_table"])[2]/tr')
+            subjects = []
+            for tr in trs:
+                teacher_name = ''.join(tr.xpath(
+                    'td[@class="registro_firma_dett_docente"]//text()')
+                ).strip()
+                teacher_subject = ''.join(tr.xpath(
+                    'td[@class="registro_firma_dett_materia"]//text()')
+                ).replace('\n', ' ').strip()
+                hour = ''.join(
+                    tr.xpath('td[@class="registro_firma_dett_ora"]//text()')
+                ).strip()
+                topic = ''.join(
+                    tr.xpath(
+                        'td[@class="registro_firma_dett_argomento_lezione'
+                        ' bluetext"]/*[2]/text()')).strip()
+                if hour == '':
+                    continue
+                subjects.append(Lesson(
+                    teacher_name,
+                    teacher_subject,
+                    hour,
+                    topic,
+                ))
+            return subjects
+
+        def get_lessons(self):
+            return self.retrieve_lessons()
 
     class Grades:
         """grades parsing class"""

@@ -125,8 +125,14 @@ def main():
                         help="download teacher files", action='store_true')
     parser.add_argument("--grades", "-g",
                         help="get school grades", action='store_true')
+    parser.add_argument("--lessons", "-l",
+                        help="see what teacher explained today",
+                        action='store_true')
     parser.add_argument("--download-all", "-d",
                         help="download ALL teacher files", action='store_true')
+    parser.add_argument("--lessons-date", '-ld',
+                        help="date format: 2022-01-14", type=str,
+                        default='')
     parser.add_argument("--save-folder", "-save",
                         help="folder to download file ", type=str,
                         default='files')
@@ -141,7 +147,8 @@ def main():
     args = parser.parse_args()
     if not any(vars(args).values()):
         parser.error('No arguments provided.')
-    elif not (args.files or args.assignment or args.grades):
+    elif not (args.files or args.assignment or args.grades or
+              args.lessons):
         parser.error("Choose at least one action between files, assignments"
                      ", grades!")
 
@@ -161,6 +168,20 @@ def main():
                 f"{idx[0]}: {idx[1].date} {idx[1].teacher} "
                 f"{Fore.GREEN}{idx[1].filename}{Fore.RESET}"
             )
+    elif args.lessons:
+        lessons = cvv.get_lessons(start_date=args.lessons_date)
+        for lesson in lessons:
+            print(
+                f"{Fore.GREEN}{lesson.hour.split(' ')[0]} {Fore.RED}"
+                f"{lesson.teacher_name}"
+                f"{Fore.RESET}"
+                f":{Fore.GREEN}"
+                f"{lesson.teacher_subject.split('(')[:-1][0].strip()}"
+                f"{Fore.RESET}",
+                (f" → {Fore.BLUE}{lesson.topic}{Fore.RESET}" if
+                 lesson.topic else "")
+            )
+        sexit()
 
     while True:
         try:
