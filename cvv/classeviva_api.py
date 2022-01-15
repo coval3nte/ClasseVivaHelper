@@ -271,23 +271,25 @@ class CVV:
             """get subject keys"""
             return list(self.get_grades()[index].keys())
 
+        def _get_all_grades(self, index):
+            grades = []
+            if not self.get_grades()[index]:
+                return 0.0
+            for subject in self.get_grades()[index]:
+                for grade in self.get_grades()[index][subject]:
+                    grades.append(self._sanitize_grade(grade.grade))
+            return grades
+
         def get_subject_average(self, index, subject):
             """get subject average"""
-            avg = 0.0
             if not self.get_grades()[index][subject]:
-                return avg
-            for grade in self.get_grades()[index][subject]:
-                avg += self._sanitize_grade(grade.grade)
-            return avg / len(self.get_grades()[index][subject])
+                return 0.0
+            return np.average([self._sanitize_grade(grade.grade) for grade
+                               in self.get_grades()[index][subject]])
 
         def get_average(self, index):
             """get average"""
-            avg = 0.0
-            if not self.get_grades()[index]:
-                return avg
-            for subject in self.get_grades()[index]:
-                avg += self.get_subject_average(index, subject)
-            return avg/len(self.get_grades()[index])
+            return np.average(self._get_all_grades(index))
 
         def get_trend(self, index, subject):
             """get trend"""
