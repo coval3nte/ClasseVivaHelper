@@ -33,3 +33,12 @@ class Lesson:
     teacher_subject: str
     hour: str
     topic: str
+
+
+@dataclass
+class Absence:
+    """Absence datatype"""
+    absence: str
+    data_start: str
+    data_stop: str
+    anno_scol: str

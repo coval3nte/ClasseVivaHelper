@@ -116,6 +116,21 @@ def get_assignment(cvv, keys):
         )
 
 
+def justify_absences(cvv, absences):
+    """justify absences"""
+    absences_input = input("Absence (index): ").rstrip().split(",")
+    reason = input("Reason: ").rstrip()
+    for absence in absences_input:
+        if cvv.justify_absence(int(absence), reason):
+            print(f"{Fore.MAGENTA}Absence{Fore.RESET}:"
+                  f" {absence} {Fore.GREEN}Successfully Justified{Fore.RESET}"
+                  )
+        else:
+            print("{Fore.MAGENTA}Something went wrong while justifying"
+                  f"{Fore.RESET}:"
+                  f" {absences[absence].absence}")
+
+
 def main():
     """main function"""
     parser = ArgumentParser(description="CVV")
@@ -127,6 +142,12 @@ def main():
                         help="get school grades", action='store_true')
     parser.add_argument("--lessons", "-l",
                         help="see what teacher explained today",
+                        action='store_true')
+    parser.add_argument("--absences", "-abs",
+                        help="see your absences",
+                        action='store_true')
+    parser.add_argument("--absence-justify", "-absj",
+                        help="justify absences",
                         action='store_true')
     parser.add_argument("--download-all", "-d",
                         help="download ALL teacher files", action='store_true')
@@ -148,7 +169,7 @@ def main():
     if not any(vars(args).values()):
         parser.error('No arguments provided.')
     elif not (args.files or args.assignment or args.grades or
-              args.lessons):
+              args.lessons or args.absences):
         parser.error("Choose at least one action between files, assignments"
                      ", grades!")
 
@@ -182,6 +203,12 @@ def main():
                  lesson.topic else "")
             )
         sexit()
+    elif args.absences:
+        absences = cvv.get_absences()
+        for absence in enumerate(absences):
+            print(f"{absence[0]}: {Fore.RED}{absence[1].absence}{Fore.RESET}")
+        if not args.absence_justify:
+            sexit()
 
     while True:
         try:
@@ -191,6 +218,8 @@ def main():
                 get_grades(cvv, keys)
             elif args.files:
                 get_files(args, cvv, files, loop)
+            elif args.absences:
+                justify_absences(cvv, absences)
         except KeyboardInterrupt:
             print('bye...')
             sexit()
