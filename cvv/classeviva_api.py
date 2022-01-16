@@ -522,7 +522,9 @@ class CVV:
                 end_date += int(timedelta(weeks=self.cvv.args.months *
                                 4).total_seconds())
             elif self.cvv.args.tomorrow:
-                end_date += int(timedelta(days=1).total_seconds())
+                end_date += int(
+                    timedelta(days=1).total_seconds()*2 - datetime.now().hour
+                )
             else:
                 end_date += int(timedelta(weeks=4).total_seconds())
 
