@@ -93,6 +93,10 @@ class CVV:
         else:
             raise self.AuthError(login.text)
 
+    def sanitize_grade(self, grade):
+        """sanitize grade"""
+        return self.Grades(self).sanitize_grade(grade)
+
     def get_lessons(self, start_date=''):
         """get today"""
         return self.Lesson(self, start_date).get_lessons()
@@ -294,9 +298,21 @@ class CVV:
             return grades.text
 
         @classmethod
-        def _sanitize_grade(cls, grade):
+        def sanitize_grade(cls, grade):
             bad_words = ['+', '-', '½']
-            grade_new = int(grade.strip().rstrip(''.join(bad_words)))
+            irc = {
+                'o': 10,
+                'd': 8,
+                'b': 7,
+                's': 6,
+                'ns': 5
+            }
+            grade = grade.strip().rstrip(''.join(bad_words))
+
+            if grade in irc:
+                return irc[grade]
+
+            grade_new = int(grade)
             if bad_words[0] in grade:
                 grade_new += 0.25
             if bad_words[1] in grade:
@@ -365,14 +381,14 @@ class CVV:
                 return 0.0
             for subject in self.get_grades()[index]:
                 for grade in self.get_grades()[index][subject]:
-                    grades.append(self._sanitize_grade(grade.grade))
+                    grades.append(self.sanitize_grade(grade.grade))
             return grades
 
         def get_subject_average(self, index, subject):
             """get subject average"""
             if not self.get_grades()[index][subject]:
                 return 0.0
-            return np.average([self._sanitize_grade(grade.grade) for grade
+            return np.average([self.sanitize_grade(grade.grade) for grade
                                in self.get_grades()[index][subject]])
 
         def get_average(self, index):
@@ -381,7 +397,7 @@ class CVV:
 
         def get_trend(self, index, subject):
             """get trend"""
-            grades = [self._sanitize_grade(x.grade)
+            grades = [self.sanitize_grade(x.grade)
                       for x in self.get_grades()[index][subject]]
             if len(grades) <= 1 or len(set(grades)) == 1:
                 return None

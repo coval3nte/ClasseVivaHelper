@@ -3,6 +3,11 @@ from argparse import ArgumentParser
 from asyncio import get_event_loop
 from sys import exit as sexit
 from os import get_terminal_size
+from datetime import datetime, timedelta
+from matplotlib import pyplot as plt
+from matplotlib import dates as mdates
+import mplcursors
+import numpy as np
 from colorama import Fore
 from .classeviva_api import CVV
 from .creds import Creds
@@ -33,6 +38,70 @@ def text_trend(trend):
         return ' - 📈'
 
     return ' - 📉'
+
+
+def filter_dates(dates):
+    """filter near dates"""
+    j = 0
+    while j < len(dates):
+        i = 3
+        j += 1
+        while True:
+            if dates[j] + timedelta(days=i) in dates:
+                i += 1
+            else:
+                if i > 3:
+                    del dates[j-3:j+i-3]
+                break
+    return dates
+
+
+def graph_grades(cvv, keys):
+    """generate a dates graph"""
+    terms = input("Term (index): ").rstrip().split(",")
+    ax_plt = plt.gca()
+    ax_plt.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+    ax_plt.xaxis.set_major_locator(mdates.DayLocator())
+
+    grades, dates = {}, []
+    for term in terms:
+        subjects = cvv.get_grades()[keys[int(term)]]
+        ax_plt.set_prop_cycle(
+            color=[plt.get_cmap('Paired')(1.*i/(len(subjects)+1)
+                                          ) for i in range(
+                (len(subjects)+1))])
+        for subject in subjects:
+            subject_grades, subject_dates = [], []
+            for grade in subjects[subject]:
+                date = datetime.strptime(grade.date, "%d/%m/%Y").date()
+                subject_grades.append(cvv.sanitize_grade(grade.grade))
+                subject_dates.append(date)
+                dates.append(date)
+
+                if date not in grades:
+                    grades[date] = []
+                grades[date].append(
+                    cvv.sanitize_grade(grade.grade)
+                )
+
+            plt.plot(subject_dates, subject_grades, marker='o', label=subject)
+
+        if len(list(grades.values())) > 0:
+            averages_y = [list(dict(sorted(grades.items())).values())[0][0]]
+            for count, _ in enumerate(grades):
+                if len(list(grades.values())[:count]) > 0:
+                    averages_y.append(np.average(
+                        sum(list(dict(sorted(grades.items())).values()
+                                 )[:count],
+                            [])))
+
+            plt.plot(dict(sorted(grades.items())).keys(),
+                     averages_y, marker='o', label="mean")
+            ax_plt.set_xticks(filter_dates(dates))
+            ax_plt.tick_params(axis='x', rotation=90, which='major', pad=10)
+            ax_plt.legend()
+            mplcursors.cursor(hover=True)
+            plt.show()
 
 
 def get_grades(cvv, keys):
@@ -140,6 +209,8 @@ def main():
                         help="download teacher files", action='store_true')
     parser.add_argument("--grades", "-g",
                         help="get school grades", action='store_true')
+    parser.add_argument("--grades-chart", "-gm",
+                        help="show grades chart", action='store_true')
     parser.add_argument("--lessons", "-l",
                         help="see what teacher explained today",
                         action='store_true')
@@ -215,7 +286,10 @@ def main():
             if args.assignment:
                 get_assignment(cvv, keys)
             elif args.grades:
-                get_grades(cvv, keys)
+                if args.grades_chart:
+                    graph_grades(cvv, keys)
+                else:
+                    get_grades(cvv, keys)
             elif args.files:
                 get_files(args, cvv, files, loop)
             elif args.absences:
