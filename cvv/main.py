@@ -97,7 +97,7 @@ def graph_grades(cvv, keys):
                             [])))
 
             plt.plot(dict(sorted(grades.items())).keys(),
-                     averages_y, marker='o', label="mean")
+                     averages_y, marker='o', label="mean", linestyle='dashed')
             ax_plt.set_xticks(filter_dates((sorted(list(grades.keys())))))
             ax_plt.tick_params(axis='x', rotation=90, which='major', pad=10)
             ax_plt.legend()
