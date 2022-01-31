@@ -138,9 +138,11 @@ class CVV:
         return self.Grades(self).get_trend(index, subject)
 
     def get_absences(self):
+        """get absences"""
         return self.Absence(self).get_absences()
 
     def justify_absence(self, index, reason):
+        """justify absence"""
         return self.Absence(self).justify_absence(index, reason)
 
     def download_file(self, filename, contenuto_id, cksum):
@@ -170,6 +172,7 @@ class CVV:
             return req.text
 
         def retrieve_absences(self):
+            """retrieve absences"""
             absences_list = []
 
             tree = html.fromstring(self._do_absence())
@@ -224,9 +227,11 @@ class CVV:
             return False
 
         def justify_absence(self, index, reason):
+            """justify absence"""
             return self._justify_absence(index, reason)
 
         def get_absences(self):
+            """get absence"""
             return self.cvv.absences
 
     class Lesson:
@@ -250,21 +255,23 @@ class CVV:
             return today.text
 
         def retrieve_lessons(self):
+            """retrieve lessons"""
             tree = html.fromstring(self._do_lessons())
             trs = tree.xpath('(//table[@id="data_table"])[2]/tr')
             subjects = []
-            for tr in trs:
-                teacher_name = ''.join(tr.xpath(
+            for tr_xpath in trs:
+                teacher_name = ''.join(tr_xpath.xpath(
                     'td[@class="registro_firma_dett_docente"]//text()')
                 ).strip()
-                teacher_subject = ''.join(tr.xpath(
+                teacher_subject = ''.join(tr_xpath.xpath(
                     'td[@class="registro_firma_dett_materia"]//text()')
                 ).replace('\n', ' ').strip()
                 hour = ''.join(
-                    tr.xpath('td[@class="registro_firma_dett_ora"]//text()')
+                    tr_xpath.xpath(
+                        'td[@class="registro_firma_dett_ora"]//text()')
                 ).strip()
                 topic = ''.join(
-                    tr.xpath(
+                    tr_xpath.xpath(
                         'td[@class="registro_firma_dett_argomento_lezione'
                         ' bluetext"]/*[2]/text()')).strip()
                 if hour == '':
@@ -278,6 +285,7 @@ class CVV:
             return subjects
 
         def get_lessons(self):
+            """get lessons"""
             return self.retrieve_lessons()
 
     class Grades:
@@ -299,6 +307,7 @@ class CVV:
 
         @classmethod
         def sanitize_grade(cls, grade):
+            """sanitize grade"""
             bad_words = ['+', '-', '½']
             irc = {
                 'o': 10,
@@ -527,9 +536,14 @@ class CVV:
         def _get_assignments(self):
             start_date = int(time())
             if self.cvv.args.start_month:
+                if datetime.now().month > 8:
+                    year = datetime.now().year
+                elif self.cvv.args.start_year:
+                    year = self.cvv.args.start_year
+                else:
+                    year = datetime.now().year-1
                 start_date = int(datetime(
-                    datetime.now().year if datetime.now().month > 8
-                    else datetime.now().year-1,
+                    year,
                     self.cvv.args.start_month, 1, 0, 0
                 ).timestamp())
 
@@ -554,7 +568,6 @@ class CVV:
                     parsed_assignments[item["autore_desc"]] = []
                 parsed_assignments[item["autore_desc"]].append(Assignment(
                     item["nota_2"],
-                    # item["data_inserimento"]
                     item["end"]
                 ))
             return parsed_assignments

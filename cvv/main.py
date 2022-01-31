@@ -62,7 +62,7 @@ def graph_grades(cvv, keys):
     """generate a dates graph"""
     terms = input("Term (index): ").rstrip().split(",")
     ax_plt = plt.gca()
-    ax_plt.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+    ax_plt.xaxis.set_major_formatter(mdates.DateFormatter("%d/%m/%Y"))
     ax_plt.xaxis.set_major_locator(mdates.DayLocator())
 
     grades = {}
@@ -99,7 +99,7 @@ def graph_grades(cvv, keys):
             plt.plot(dict(sorted(grades.items())).keys(),
                      averages_y, marker='o', label="mean", linestyle='dashed')
             ax_plt.set_xticks(filter_dates((sorted(list(grades.keys())))))
-            ax_plt.tick_params(axis='x', rotation=90, which='major', pad=10)
+            ax_plt.tick_params(axis='x', rotation=90, which='major')
             ax_plt.legend()
             mplcursors.cursor(hover=True)
             plt.show()
@@ -204,10 +204,6 @@ def justify_absences(cvv, absences):
 def main():
     """main function"""
     parser = ArgumentParser(description="CVV")
-    parser.add_argument("--assignment", "-a",
-                        help="get school assignments", action='store_true')
-    parser.add_argument("--files", "-f",
-                        help="download teacher files", action='store_true')
     parser.add_argument("--grades", "-g",
                         help="get school grades", action='store_true')
     parser.add_argument("--grades-chart", "-gm",
@@ -215,22 +211,28 @@ def main():
     parser.add_argument("--lessons", "-l",
                         help="see what teacher explained today",
                         action='store_true')
+    parser.add_argument("--lessons-date", '-ld',
+                        help="date format: 2022-01-14", type=str,
+                        default='')
     parser.add_argument("--absences", "-abs",
                         help="see your absences",
                         action='store_true')
     parser.add_argument("--absence-justify", "-absj",
                         help="justify absences",
                         action='store_true')
-    parser.add_argument("--download-all", "-d",
-                        help="download ALL teacher files", action='store_true')
-    parser.add_argument("--lessons-date", '-ld',
-                        help="date format: 2022-01-14", type=str,
-                        default='')
+    parser.add_argument("--files", "-f",
+                        help="download teacher files", action='store_true')
     parser.add_argument("--save-folder", "-save",
                         help="folder to download file ", type=str,
                         default='files')
+    parser.add_argument("--download-all", "-d",
+                        help="download ALL teacher files", action='store_true')
+    parser.add_argument("--assignment", "-a",
+                        help="get school assignments", action='store_true')
     parser.add_argument('--start-month', "-s",
                         help="get assignment from (month)", type=int)
+    parser.add_argument('--start-year', "-sy",
+                        help="get assignment from (year)", type=int)
     parser.add_argument('--months', "-m",
                         help="get upcoming assignment to (month)", type=int)
     parser.add_argument('--tomorrow', "-t",
