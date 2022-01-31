@@ -44,14 +44,16 @@ def filter_dates(dates):
     """filter near dates"""
     j = 0
     while j < len(dates):
+        date = dates[j]
         i = 3
         j += 1
         while True:
-            if dates[j] + timedelta(days=i) in dates:
+            date += timedelta(days=1)
+            if date in dates:
                 i += 1
             else:
-                if i > 3:
-                    del dates[j-3:j+i-3]
+                if i > 2:
+                    del dates[j:j+i-1]
                 break
     return dates
 
@@ -63,7 +65,7 @@ def graph_grades(cvv, keys):
     ax_plt.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
     ax_plt.xaxis.set_major_locator(mdates.DayLocator())
 
-    grades, dates = {}, []
+    grades = {}
     for term in terms:
         subjects = cvv.get_grades()[keys[int(term)]]
         ax_plt.set_prop_cycle(
@@ -76,7 +78,6 @@ def graph_grades(cvv, keys):
                 date = datetime.strptime(grade.date, "%d/%m/%Y").date()
                 subject_grades.append(cvv.sanitize_grade(grade.grade))
                 subject_dates.append(date)
-                dates.append(date)
 
                 if date not in grades:
                     grades[date] = []
@@ -97,7 +98,7 @@ def graph_grades(cvv, keys):
 
             plt.plot(dict(sorted(grades.items())).keys(),
                      averages_y, marker='o', label="mean")
-            ax_plt.set_xticks(filter_dates(dates))
+            ax_plt.set_xticks(filter_dates((sorted(list(grades.keys())))))
             ax_plt.tick_params(axis='x', rotation=90, which='major', pad=10)
             ax_plt.legend()
             mplcursors.cursor(hover=True)
