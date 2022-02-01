@@ -99,9 +99,12 @@ def graph_grades(cvv, keys):
             plt.plot(dict(sorted(grades.items())).keys(),
                      averages_y, marker='o', label="mean", linestyle='dashed')
             ax_plt.set_xticks(filter_dates((sorted(list(grades.keys())))))
-            ax_plt.tick_params(axis='x', rotation=90, which='major')
+            ax_plt.tick_params(axis='x', rotation=45, which='major')
             ax_plt.legend()
             mplcursors.cursor(hover=True)
+            plt.title("Grades Plot")
+            plt.xlabel("Time")
+            plt.ylabel("Grade")
             plt.show()
 
 
