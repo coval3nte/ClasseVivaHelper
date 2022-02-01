@@ -201,54 +201,8 @@ def justify_absences(cvv, absences):
                   f" {absences[absence].absence}")
 
 
-def main():
-    """main function"""
-    parser = ArgumentParser(description="CVV")
-    parser.add_argument("--grades", "-g",
-                        help="get school grades", action='store_true')
-    parser.add_argument("--grades-chart", "-gm",
-                        help="show grades chart", action='store_true')
-    parser.add_argument("--lessons", "-l",
-                        help="see what teacher explained today",
-                        action='store_true')
-    parser.add_argument("--lessons-date", '-ld',
-                        help="date format: 2022-01-14", type=str,
-                        default='')
-    parser.add_argument("--absences", "-abs",
-                        help="see your absences",
-                        action='store_true')
-    parser.add_argument("--absence-justify", "-absj",
-                        help="justify absences",
-                        action='store_true')
-    parser.add_argument("--files", "-f",
-                        help="download teacher files", action='store_true')
-    parser.add_argument("--save-folder", "-save",
-                        help="folder to download file ", type=str,
-                        default='files')
-    parser.add_argument("--download-all", "-d",
-                        help="download ALL teacher files", action='store_true')
-    parser.add_argument("--assignment", "-a",
-                        help="get school assignments", action='store_true')
-    parser.add_argument('--start-month', "-s",
-                        help="get assignment from (month)", type=int)
-    parser.add_argument('--start-year', "-sy",
-                        help="get assignment from (year)", type=int)
-    parser.add_argument('--months', "-m",
-                        help="get upcoming assignment to (month)", type=int)
-    parser.add_argument('--tomorrow', "-t",
-                        help="get upcoming assignment for tomorrow",
-                        action='store_true')
-
-    args = parser.parse_args()
-    if not any(vars(args).values()):
-        parser.error('No arguments provided.')
-    elif not (args.files or args.assignment or args.grades or
-              args.lessons or args.absences):
-        parser.error("Choose at least one action between files, assignments"
-                     ", grades!")
-
-    cvv = CVV(args=args, mail=mail, password=password, session=session)
-
+def cli(args, cvv):
+    """cli functions"""
     if args.assignment:
         keys = cvv.get_assignments_keys()
         print('\n'.join(display_indexes(keys)))
@@ -302,6 +256,54 @@ def main():
             sexit()
         except (ValueError, IndexError):
             pass
+
+
+def main():
+    """main function"""
+    parser = ArgumentParser(description="CVV")
+    parser.add_argument("--grades", "-g",
+                        help="get school grades", action='store_true')
+    parser.add_argument("--grades-chart", "-gm",
+                        help="show grades chart", action='store_true')
+    parser.add_argument("--lessons", "-l",
+                        help="see what teacher explained today",
+                        action='store_true')
+    parser.add_argument("--lessons-date", '-ld',
+                        help="date format: 2022-01-14", type=str,
+                        default='')
+    parser.add_argument("--absences", "-abs",
+                        help="see your absences",
+                        action='store_true')
+    parser.add_argument("--absence-justify", "-absj",
+                        help="justify absences",
+                        action='store_true')
+    parser.add_argument("--files", "-f",
+                        help="download teacher files", action='store_true')
+    parser.add_argument("--save-folder", "-save",
+                        help="folder to download file ", type=str,
+                        default='files')
+    parser.add_argument("--download-all", "-d",
+                        help="download ALL teacher files", action='store_true')
+    parser.add_argument("--assignment", "-a",
+                        help="get school assignments", action='store_true')
+    parser.add_argument('--start-month', "-s",
+                        help="get assignment from (month)", type=int)
+    parser.add_argument('--months', "-m",
+                        help="get upcoming assignment to (month)", type=int)
+    parser.add_argument('--tomorrow', "-t",
+                        help="get upcoming assignment for tomorrow",
+                        action='store_true')
+
+    args = parser.parse_args()
+    if not any(vars(args).values()):
+        parser.error('No arguments provided.')
+    elif not (args.files or args.assignment or args.grades or
+              args.lessons or args.absences):
+        parser.error("Choose at least one action between files, assignments"
+                     ", grades!")
+
+    cvv = CVV(args=args, mail=mail, password=password, session=session)
+    cli(args, cvv)
 
 
 if __name__ == '__main__':

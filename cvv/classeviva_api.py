@@ -536,14 +536,9 @@ class CVV:
         def _get_assignments(self):
             start_date = int(time())
             if self.cvv.args.start_month:
-                if datetime.now().month > 8:
-                    year = datetime.now().year
-                elif self.cvv.args.start_year:
-                    year = self.cvv.args.start_year
-                else:
-                    year = datetime.now().year-1
                 start_date = int(datetime(
-                    year,
+                    datetime.now().year if self.cvv.args.start_month < 8
+                    else datetime.now().year-1,
                     self.cvv.args.start_month, 1, 0, 0
                 ).timestamp())
 
