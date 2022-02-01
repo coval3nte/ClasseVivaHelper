@@ -316,12 +316,12 @@ class CVV:
                 's': 6,
                 'ns': 5
             }
-            grade = grade.strip().rstrip(''.join(bad_words))
+            grade = grade
 
             if grade in irc:
                 return irc[grade]
 
-            grade_new = int(grade)
+            grade_new = int(grade.strip().rstrip(''.join(bad_words)))
             if bad_words[0] in grade:
                 grade_new += 0.25
             if bad_words[1] in grade:
