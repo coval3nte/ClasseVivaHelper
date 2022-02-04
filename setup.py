@@ -16,7 +16,7 @@ setup(name='ClasseVivaHelper',
           'lxml',
           'asyncio'
       ],
-      packages=['cvv'],
+      packages=['cvv', 'cvv.methods'],
       package_dir={'classeviva': 'cvv'},
       entry_points={
           'console_scripts': [
