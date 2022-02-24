@@ -14,7 +14,8 @@ setup(name='ClasseVivaHelper',
           'requests',
           'pyyaml',
           'lxml',
-          'asyncio'
+          'asyncio',
+          'mplcursors'
       ],
       packages=['cvv', 'cvv.methods'],
       package_dir={'classeviva': 'cvv'},

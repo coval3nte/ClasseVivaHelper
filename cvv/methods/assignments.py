@@ -66,12 +66,15 @@ class Assignments:
 
         self._assignment_request(start_date, end_date)
 
-    @classmethod
-    def _parse_assignments(cls, assignments):
+    def _parse_assignments(self, assignments):
         parsed_assignments: Dict[str, Assignment] = {}
         for item in assignments:
             if item["autore_desc"] not in parsed_assignments:
                 parsed_assignments[item["autore_desc"]] = []
+            if self.cvv.args.tomorrow and datetime.strptime(
+                    item["end"], "%Y-%m-%d %H:%M:%S"
+            ).day == datetime.now().day:
+                continue
             parsed_assignments[item["autore_desc"]].append(Assignment(
                 item["nota_2"],
                 item["end"]
