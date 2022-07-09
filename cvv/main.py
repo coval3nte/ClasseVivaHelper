@@ -105,21 +105,30 @@ def graph_grades(cvv, keys):
             plt.title("Grades Plot")
             plt.xlabel("Time")
             plt.ylabel("Grade")
-            plt.show()
+    plt.show()
 
 
-def get_grades(cvv, keys):
+def get_grades(cvv, keys, total):
     """parse grades API"""
     terms = input("Term (index): ").rstrip().split(",")
+    avgs = {}
+    general_mean = [cvv.get_average(keys[int(term)]) for term in terms]
     for term in terms:
         general_trend = cvv.get_average(keys[int(term)])
         not_sufficient, min_grade = [], []
         subjects = cvv.get_grades()[keys[int(term)]]
-        print(f"{Fore.MAGENTA}General Trend - {general_trend}"
+        print(f"{Fore.MAGENTA}Trend - {term} - {general_trend}"
               f"{text_trend(general_trend > SUFFICIENCY)}{Fore.RESET}"
               )
         for subject in subjects:
             avg = cvv.get_subject_average(keys[int(term)], subject)
+
+            if total:
+                if subject not in avgs:
+                    avgs[subject] = []
+                avgs[subject].append(avg)
+                continue
+
             trend = text_trend(cvv.get_trend(keys[int(term)], subject))
 
             if avg < SUFFICIENCY:
@@ -149,6 +158,18 @@ def get_grades(cvv, keys):
                   f"Few grades in:\n- {Fore.RED}" +
                   f'\n{Fore.RESET}-{Fore.RED} '.join(min_grade) +
                   Fore.RESET)
+    if total:
+        print(f"{Fore.MAGENTA}General Trend - ",
+              sum(general_mean)/len(general_mean),
+              f"{text_trend(general_trend > SUFFICIENCY)}{Fore.RESET}"
+              )
+        for subject in avgs:
+            avg = sum(avgs[subject])/len(avgs[subject])
+            print(
+                f"{Fore.RED}{subject}"
+                f"{Fore.GREEN + ' - ' if avg > 6.0 else ' - '}"
+                f"{avg}{Fore.RESET}"
+            )
 
 
 def get_files(args, cvv, files, loop):
@@ -240,6 +261,8 @@ def cli(args, cvv):
             print(f"{absence[0]}: {Fore.RED}{absence[1].absence}{Fore.RESET}")
         if not args.absence_justify:
             sexit()
+    elif args.check_bacheca:
+        cvv.check_bacheca()
 
     while True:
         try:
@@ -249,11 +272,13 @@ def cli(args, cvv):
                 if args.grades_chart:
                     graph_grades(cvv, keys)
                 else:
-                    get_grades(cvv, keys)
+                    get_grades(cvv, keys, args.total_mean)
             elif args.files:
                 get_files(args, cvv, files, loop)
             elif args.absences:
                 justify_absences(cvv, absences)
+            else:
+                sexit()
         except KeyboardInterrupt:
             print('bye...')
             sexit()
@@ -268,6 +293,8 @@ def main():
                         help="get school grades", action='store_true')
     parser.add_argument("--grades-chart", "-gm",
                         help="show grades chart", action='store_true')
+    parser.add_argument("--total-mean", "-tm",
+                        help="get total mean", action='store_true')
     parser.add_argument("--lessons", "-l",
                         help="see what teacher explained today",
                         action='store_true')
@@ -296,14 +323,16 @@ def main():
     parser.add_argument('--tomorrow', "-t",
                         help="get upcoming assignment for tomorrow",
                         action='store_true')
+    parser.add_argument("--check-bacheca", "-cb",
+                        help="check new documents", action='store_true')
 
     args = parser.parse_args()
     if not any(vars(args).values()):
         parser.error('No arguments provided.')
     elif not (args.files or args.assignment or args.grades or
-              args.lessons or args.absences):
+              args.lessons or args.absences or args.check_bacheca):
         parser.error("Choose at least one action between files, assignments"
-                     ", grades!")
+                     ", grades, check bacheca!")
 
     cvv = CVV(args=args, mail=mail, password=password, session=session)
     cli(args, cvv)

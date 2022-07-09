@@ -86,6 +86,34 @@ class CVV:
         else:
             raise self.AuthError(login.text)
 
+    def check_bacheca(self):
+        from time import sleep
+        data = {
+            "action": "get_comunicazioni",
+            "cerca": "",
+            "ncna": 1,
+            "tipo_com": ""
+        }
+        c = 0
+        old = {}
+        while True:
+            resp = post(self.endpoint +
+                        '/sif/app/default/bacheca_personale.php',
+                        headers=self.headers,
+                        data=data,
+                        cookies=self.cookies)
+            if c == 0:
+                old = resp.json()
+            if resp.json() != old:
+                print('\a'*10)
+                exit()
+            else:
+                print(f"{c}", end="\r")
+                c += 1
+                if resp.status_code != 200:
+                    print(resp.text)
+                sleep(60)
+
     def sanitize_grade(self, grade):
         """sanitize grade"""
         return Grades(self).sanitize_grade(grade)
